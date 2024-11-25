@@ -1,76 +1,74 @@
-require 'minitest/autorun'
-require 'active_record'
+require "minitest/autorun"
+require "active_record"
 require "./init"
 I18n.enforce_available_locales = true
 
-ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => "#{File.dirname(__FILE__)}/database.test")
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: "#{File.dirname(__FILE__)}/database.test")
 
-#Used for basic graph link testing
+# Used for basic graph link testing
 class Default < ActiveRecord::Base
-  acts_as_dag_links :node_class_name => 'Node'
-  self.table_name = 'edges'
+  acts_as_dag_links node_class_name: "Node"
+  self.table_name = "edges"
 end
 
-#Used for polymorphic graph link testing
+# Used for polymorphic graph link testing
 class Poly < ActiveRecord::Base
-  acts_as_dag_links :polymorphic => true
-  self.table_name = 'poly_edges'
+  acts_as_dag_links polymorphic: true
+  self.table_name = "poly_edges"
 end
 
-#Used for redefinition testing
+# Used for redefinition testing
 class Redefiner < ActiveRecord::Base
-  acts_as_dag_links :node_class_name => 'Redefiner',
-                    :direct_column => 'd',
-                    :count_column => 'c',
-                    :ancestor_id_column => 'foo_id',
-                    :descendant_id_column => 'bar_id'
-  self.table_name = 'edges2'
+  acts_as_dag_links node_class_name: "Redefiner",
+                    direct_column: "d",
+                    count_column: "c",
+                    ancestor_id_column: "foo_id",
+                    descendant_id_column: "bar_id"
+  self.table_name = "edges2"
 end
 
 class Node < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Default'
-  self.table_name = 'nodes'
+  has_dag_links link_class_name: "Default"
+  self.table_name = "nodes"
 end
 
 class RedefNode < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Redefiner'
-  self.table_name = 'redef_nodes'
+  has_dag_links link_class_name: "Redefiner"
+  self.table_name = "redef_nodes"
 end
 
 class AlphaNode < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Poly',
-                :descendant_class_names => ['BetaNode', 'GammaNode', 'ZetaNode']
-  self.table_name = 'alpha_nodes'
+  has_dag_links link_class_name: "Poly",
+                descendant_class_names: %w[BetaNode GammaNode ZetaNode]
+  self.table_name = "alpha_nodes"
 end
 
 class BetaNode < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Poly',
-                :ancestor_class_names => ['AlphaNode', 'BetaNode'],
-                :descendant_class_names => ['BetaNode', 'GammaNode', 'ZetaNode']
-  self.table_name = 'beta_nodes'
+  has_dag_links link_class_name: "Poly",
+                ancestor_class_names: %w[AlphaNode BetaNode],
+                descendant_class_names: %w[BetaNode GammaNode ZetaNode]
+  self.table_name = "beta_nodes"
 end
 
 class GammaNode < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Poly',
-                :ancestor_class_names => ['AlphaNode', 'BetaNode', 'GammaNode'],
-                :descendant_class_names => ['GammaNode', 'ZetaNode']
-  self.table_name = 'gamma_nodes'
+  has_dag_links link_class_name: "Poly",
+                ancestor_class_names: %w[AlphaNode BetaNode GammaNode],
+                descendant_class_names: %w[GammaNode ZetaNode]
+  self.table_name = "gamma_nodes"
 end
 
 class ZetaNode < ActiveRecord::Base
-  has_dag_links :link_class_name => 'Poly',
-                :ancestor_class_names => ['AlphaNode', 'BetaNode', 'GammaNode']
-  self.table_name = 'zeta_nodes'
+  has_dag_links link_class_name: "Poly",
+                ancestor_class_names: %w[AlphaNode BetaNode GammaNode]
+  self.table_name = "zeta_nodes"
 end
 
-
-#Unit Tests for the DAG plugin
+# Unit Tests for the DAG plugin
 class DagTest < Minitest::Test
-
-  #Setups up database in memory
+  # Setups up database in memory
   def setup
     ActiveRecord::Migration.verbose = false
-    ActiveRecord::Schema.define(:version => 1) do
+    ActiveRecord::Schema.define(version: 1) do
       create_table :edges do |t|
         t.column :ancestor_id, :integer
         t.column :descendant_id, :integer
@@ -120,102 +118,104 @@ class DagTest < Minitest::Test
     end
   end
 
-  #Brings down database
+  # Brings down database
   def teardown
     ActiveRecord::Base.connection.tables.each do |table|
       ActiveRecord::Base.connection.drop_table(table)
     end
   end
 
-  #Test ancestor id column default value
+  # Test ancestor id column default value
   def test_ancestor_id_column_default
-    assert_equal 'ancestor_id', Default.acts_as_dag_options[:ancestor_id_column]
+    assert_equal "ancestor_id", Default.acts_as_dag_options[:ancestor_id_column]
   end
 
-  #Test descendant id column default value
+  # Test descendant id column default value
   def test_descendant_id_column_default
-    assert_equal 'descendant_id', Default.acts_as_dag_options[:descendant_id_column]
+    assert_equal "descendant_id", Default.acts_as_dag_options[:descendant_id_column]
   end
 
-  #Test direct column default value
+  # Test direct column default value
   def test_direct_column_default
-    assert_equal 'direct', Default.acts_as_dag_options[:direct_column]
+    assert_equal "direct", Default.acts_as_dag_options[:direct_column]
   end
 
-  #Test count column default value
+  # Test count column default value
   def test_count_column_default
-    assert_equal 'count', Default.acts_as_dag_options[:count_column]
+    assert_equal "count", Default.acts_as_dag_options[:count_column]
   end
 
-  #Test ancestor type column default value
+  # Test ancestor type column default value
   def test_ancestor_type_column_default
-    assert_equal 'ancestor_type', Poly.acts_as_dag_options[:ancestor_type_column]
+    assert_equal "ancestor_type", Poly.acts_as_dag_options[:ancestor_type_column]
   end
 
-  #Test descendant type column default value
+  # Test descendant type column default value
   def test_descendant_type_column_default
-    assert_equal 'descendant_type', Poly.acts_as_dag_options[:descendant_type_column]
+    assert_equal "descendant_type", Poly.acts_as_dag_options[:descendant_type_column]
   end
 
-  #Test polymorphic option default value
+  # Test polymorphic option default value
   def test_polymorphic_default
     assert Poly.acts_as_dag_options[:polymorphic]
     assert !Default.acts_as_dag_options[:polymorphic]
   end
 
-  #more defaults here
+  # more defaults here
 
-  #Tests ancestor_id_column_name instance and class method
+  # Tests ancestor_id_column_name instance and class method
   def test_ancestor_id_column_name
-    assert_equal 'ancestor_id', Default.ancestor_id_column_name
-    assert_equal 'ancestor_id', Default.new.ancestor_id_column_name
+    assert_equal "ancestor_id", Default.ancestor_id_column_name
+    assert_equal "ancestor_id", Default.new.ancestor_id_column_name
   end
 
-  #Tests descendant_id_column_name instance and class method
+  # Tests descendant_id_column_name instance and class method
   def test_descendant_id_column_name
-    assert_equal 'descendant_id', Default.descendant_id_column_name
-    assert_equal 'descendant_id', Default.new.descendant_id_column_name
+    assert_equal "descendant_id", Default.descendant_id_column_name
+    assert_equal "descendant_id", Default.new.descendant_id_column_name
   end
 
-  #Tests direct_column_name instance and class method
+  # Tests direct_column_name instance and class method
   def test_direct_column_name
-    assert_equal 'direct', Default.direct_column_name
-    assert_equal 'direct', Default.new.direct_column_name
+    assert_equal "direct", Default.direct_column_name
+    assert_equal "direct", Default.new.direct_column_name
   end
 
-  #Tests count_column_name instance and class method
+  # Tests count_column_name instance and class method
   def test_count_column_name
-    assert_equal 'count', Default.count_column_name
-    assert_equal 'count', Default.new.count_column_name
+    assert_equal "count", Default.count_column_name
+    assert_equal "count", Default.new.count_column_name
   end
 
-  #Tests ancestor_type_column_name polymorphic instance and class method
+  # Tests ancestor_type_column_name polymorphic instance and class method
   def test_ancestor_type_column_name
-    assert_equal 'ancestor_type', Poly.ancestor_type_column_name
-    assert_equal 'ancestor_type', Poly.new.ancestor_type_column_name
+    assert_equal "ancestor_type", Poly.ancestor_type_column_name
+    assert_equal "ancestor_type", Poly.new.ancestor_type_column_name
   end
 
-  #Tests descendant_type_column_name polymorphic instance and class method
+  # Tests descendant_type_column_name polymorphic instance and class method
   def test_descendant_type_column_name
-    assert_equal 'descendant_type', Poly.descendant_type_column_name
-    assert_equal 'descendant_type', Poly.new.descendant_type_column_name
+    assert_equal "descendant_type", Poly.descendant_type_column_name
+    assert_equal "descendant_type", Poly.new.descendant_type_column_name
   end
 
-  #Tests that count is a protected function and cannot be assigned
+  # Tests that count is a protected function and cannot be assigned
   def test_count_protected
-    assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new(:count => 1) }
-    assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new()
-    d.count = 8 }
+    assert_raises(ActiveRecord::ActiveRecordError) { Default.new(count: 1) }
+    assert_raises(ActiveRecord::ActiveRecordError) do
+      d = Default.new
+      d.count = 8
+    end
   end
 
-  #Tests that direct is a protected function and cannot be assigned
-  #def test_direct_protected
+  # Tests that direct is a protected function and cannot be assigned
+  # def test_direct_protected
   #  assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new(:direct => 1) }
   #  assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new()
   #    d.direct = false }
-  #end
+  # end
 
-  #Tests that make_direct instance method trues direct value and registers change
+  # Tests that make_direct instance method trues direct value and registers change
   def test_make_direct_method
     d = Default.new
     assert !d.direct_changed?
@@ -224,7 +224,7 @@ class DagTest < Minitest::Test
     assert d.direct
   end
 
-  #Tests that make_indirect instance method falses direct value and registers change
+  # Tests that make_indirect instance method falses direct value and registers change
   def test_make_indirect_method
     d = Default.new
     assert !d.direct_changed?
@@ -233,91 +233,91 @@ class DagTest < Minitest::Test
     assert !d.direct
   end
 
-  #Tests that changes register initial settings
+  # Tests that changes register initial settings
   def test_direct_changed_init_pass_in
-    d = Default.new(:direct => true)
+    d = Default.new(direct: true)
     assert d.direct_changed?
   end
 
-  #Tests that endpoint construction works
+  # Tests that endpoint construction works
   def test_make_endpoint
     a = Node.create!
-    p = Default::EndPoint.from(a)
+    p = Default::EndPoint.from(a, nil)
     assert p.matches?(a)
   end
 
-  #Tests that polymorphic endpoint construction works
+  # Tests that polymorphic endpoint construction works
   def test_make_endpoint_poly
     a = AlphaNode.create!
-    p = Poly::EndPoint.from(a)
+    p = Poly::EndPoint.from(a, nil)
     assert p.matches?(a)
   end
 
-  #Tests that source is correct
+  # Tests that source is correct
   def test_source_method
     a = Node.create!
     b = Node.create!
-    edge = Default.new(:ancestor => a, :descendant => b)
+    edge = Default.new(ancestor: a, descendant: b)
     s = edge.source
     assert s.matches?(a)
   end
 
-  #Tests that sink is correct
+  # Tests that sink is correct
   def test_sink_method
     a = Node.create!
     b = Node.create!
-    edge = Default.new(:ancestor => a, :descendant => b)
+    edge = Default.new(ancestor: a, descendant: b)
     s = edge.sink
     assert s.matches?(b)
   end
 
-  #Tests that source is correct for polymorphic graphs
+  # Tests that source is correct for polymorphic graphs
   def test_source_method_poly
     a = AlphaNode.create!
     b = AlphaNode.create!
-    edge = Poly.new(:ancestor => a, :descendant => b)
+    edge = Poly.new(ancestor: a, descendant: b)
     s = edge.source
     assert s.matches?(a)
   end
 
-  #Tests that sink is correct for polymorphic graphs
+  # Tests that sink is correct for polymorphic graphs
   def test_sink_method_poly
     a = AlphaNode.create!
     b = AlphaNode.create!
-    edge = Poly.new(:ancestor => a, :descendant => b)
+    edge = Poly.new(ancestor: a, descendant: b)
     s = edge.sink
     assert s.matches?(b)
   end
 
-  #Tests that source is correct when created from a model
+  # Tests that source is correct when created from a model
   def test_source_method_on_resource
     a = Node.create!
-    s = Default::Source.from(a)
+    s = Default::Source.from(a, nil)
     assert s.matches?(a)
   end
 
-  #Tests that sink is correct when created from a model
+  # Tests that sink is correct when created from a model
   def test_sink_method_on_resource
     a = Node.create!
-    s = Default::Source.from(a)
+    s = Default::Source.from(a, nil)
     assert s.matches?(a)
   end
 
-  #Tests that source is correct when created from a model for a polymorphic graph
+  # Tests that source is correct when created from a model for a polymorphic graph
   def test_source_method_on_resource_poly
     a = AlphaNode.create!
-    s = Poly::Source.from(a)
+    s = Poly::Source.from(a, nil)
     assert s.matches?(a)
   end
 
-  #Tests that sink is correct when created from a model for a polymorphic graph
+  # Tests that sink is correct when created from a model for a polymorphic graph
   def test_sink_method_on_resource_poly
     a = AlphaNode.create!
-    s = Poly::Source.from(a)
+    s = Poly::Source.from(a, nil)
     assert s.matches?(a)
   end
 
-  #Tests that class method for build works
+  # Tests that class method for build works
   def test_build_lonely_edge
     a = Node.create!
     b = Node.create!
@@ -326,7 +326,7 @@ class DagTest < Minitest::Test
     assert e.sink.matches?(b)
   end
 
-  #Tests that create_edge works
+  # Tests that create_edge works
   def test_create_lonely_edge
     a = Node.create!
     b = Node.create!
@@ -334,7 +334,7 @@ class DagTest < Minitest::Test
     assert e
   end
 
-  #Tests that create_edge! works
+  # Tests that create_edge! works
   def test_create_exla_lonely_edge
     a = Node.create!
     b = Node.create!
@@ -343,56 +343,56 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests that find edge works
+  # Tests that find edge works
   def test_find_lonely_edge
     a = Node.create!
     b = Node.create!
-    e = Default.create_edge(a, b)
+    Default.create_edge(a, b)
     e = Default.find_edge(a, b)
     assert_equal e.ancestor, a
     assert_equal e.descendant, b
   end
 
-  #Tests that find link works and find_edge rejects indirects
+  # Tests that find link works and find_edge rejects indirects
   def test_find_lonely_link
     a = Node.create!
     b = Node.create!
-    e = Default.create_edge(a, b)
+    Default.create_edge(a, b)
     e = Default.find_link(a, b)
     assert_equal e.ancestor, a
     assert_equal e.descendant, b
   end
 
-  #Tests that we catch links that would be duplicated on creation
+  # Tests that we catch links that would be duplicated on creation
   def test_validation_on_create_duplication_catch
     a = Node.create!
     b = Node.create!
-    e = Default.create_edge(a, b)
+    Default.create_edge(a, b)
     e2 = Default.create_edge(a, b)
     assert !e2
-    assert_raises(ActiveRecord::RecordInvalid) { e3 = Default.create_edge!(a, b) }
+    assert_raises(ActiveRecord::RecordInvalid) { Default.create_edge!(a, b) }
   end
 
-  #Tests that we catch reversed links on creation (cycles)
+  # Tests that we catch reversed links on creation (cycles)
   def test_validation_on_create_reverse_catch
     a = Node.create!
     b = Node.create!
-    e = Default.create_edge(a, b)
+    Default.create_edge(a, b)
     e2 = Default.create_edge(b, a)
     assert !e2
-    assert_raises(ActiveRecord::RecordInvalid) { e3 = Default.create_edge!(b, a) }
+    assert_raises(ActiveRecord::RecordInvalid) { Default.create_edge!(b, a) }
   end
 
-  #Tests that we catch self to self links on creation (self cycles)
+  # Tests that we catch self to self links on creation (self cycles)
   def test_validation_on_create_short_cycle_catch
     a = Node.create!
-    b = Node.create!
+    Node.create!
     e = Default.create_edge(a, a)
     assert !e
     assert_raises(ActiveRecord::RecordInvalid) { e = Default.create_edge!(a, a) }
   end
 
-  #Tests that a direct edge with 1 count cannot be made indirect on update
+  # Tests that a direct edge with 1 count cannot be made indirect on update
   def test_validation_on_update_indirect_catch
     a = Node.create!
     b = Node.create!
@@ -402,7 +402,7 @@ class DagTest < Minitest::Test
     assert_raises(ActiveRecord::RecordInvalid) { e.save! }
   end
 
-  #Tests that nochanges fails save and save!
+  # Tests that nochanges fails save and save!
   def test_validation_on_update_no_change_catch
     a = Node.create!
     b = Node.create!
@@ -411,37 +411,37 @@ class DagTest < Minitest::Test
     assert_raises(ActiveRecord::RecordInvalid) { e.save! }
   end
 
-  #Tests that destroyable? works as required
+  # Tests that destroyable? works as required
   def tests_destroyable
     a = Node.create!
     b = Node.create!
     e = Default.create_edge!(a, b)
     assert e.destroyable?
     c = Node.create!
-    f = Default.create_edge!(b, c)
+    Default.create_edge!(b, c)
     assert !Default.find_link(a, c).destroyable?
   end
 
-  #Tests that destroy link works
+  # Tests that destroy link works
   def tests_destroy_link
     a = Node.create!
     b = Node.create!
     e = Default.create_edge!(a, b)
     e.destroy
     assert Default.find_edge(a, b).nil?
-    e = Default.create_edge!(a, b)
+    Default.create_edge!(a, b)
     c = Node.create!
-    f = Default.create_edge!(b, c)
+    Default.create_edge!(b, c)
     assert_raises(ActiveRecord::ActiveRecordError) { Default.find_link(a, c).destroy }
   end
 
-  #Tests the balancing of a graph in the transitive simple case
+  # Tests the balancing of a graph in the transitive simple case
   def test_create_pair_link_transitive
     a = Node.create!
     b = Node.create!
     c = Node.create!
-    e = Default.create_edge!(a, b)
-    f = Default.create_edge!(b, c)
+    Default.create_edge!(a, b)
+    Default.create_edge!(b, c)
     g = Default.find_link(a, c)
     h = Default.find_edge(a, c)
     assert_equal g.ancestor, a
@@ -449,13 +449,13 @@ class DagTest < Minitest::Test
     assert_nil h
   end
 
-  #Tests the ability to make an indirect link direct
+  # Tests the ability to make an indirect link direct
   def test_make_direct_link
     a = Node.create!
     b = Node.create!
     c = Node.create!
-    e = Default.create_edge!(a, b)
-    f = Default.create_edge!(b, c)
+    Default.create_edge!(a, b)
+    Default.create_edge!(b, c)
     g = Default.find_link(a, c)
     g.make_direct
     g.save!
@@ -463,13 +463,13 @@ class DagTest < Minitest::Test
     assert_equal 2, g.count
   end
 
-  #Tests the ability to make a direct link indirect
+  # Tests the ability to make a direct link indirect
   def test_make_indirect_link
     a = Node.create!
     b = Node.create!
     c = Node.create!
-    e = Default.create_edge!(a, b)
-    f = Default.create_edge!(b, c)
+    Default.create_edge!(a, b)
+    Default.create_edge!(b, c)
     g = Default.find_link(a, c)
     g.make_direct
     g.save!
@@ -479,28 +479,28 @@ class DagTest < Minitest::Test
     assert_equal 1, g.count
   end
 
-  #Tests advanced transitive cases for chain graph rebalancing
+  # Tests advanced transitive cases for chain graph rebalancing
   def test_create_chain_disjoint
     a = Node.create!
     b = Node.create!
     c = Node.create!
     d = Node.create!
-    e = Default.create_edge!(a, b)
-    f = Default.create_edge!(c, d)
-    g = Default.create_edge!(b, c)
-    #a to c
+    Default.create_edge!(a, b)
+    Default.create_edge!(c, d)
+    Default.create_edge!(b, c)
+    # a to c
     test = Default.find_link(a, c)
     testnil = Default.find_edge(a, c)
     assert_equal test.ancestor, a
     assert_equal test.descendant, c
     assert_nil testnil
-    #a to d
+    # a to d
     test = Default.find_link(a, d)
     testnil = Default.find_edge(a, d)
     assert_equal test.ancestor, a
     assert_equal test.descendant, d
     assert_nil testnil
-    #b to d
+    # b to d
     test = Default.find_link(b, d)
     testnil = Default.find_edge(b, d)
     assert_equal test.ancestor, b
@@ -509,10 +509,10 @@ class DagTest < Minitest::Test
   end
 
   ##########################
-  #TESTS FOR has_dag_links #
+  # TESTS FOR has_dag_links #
   ##########################
 
-  #Tests has_many links_as_ancestor
+  # Tests has_many links_as_ancestor
   def test_has_many_links_as_ancestor
     a = Node.create!
     b = Node.create!
@@ -523,7 +523,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_descendant
+  # Tests has_many links_as_descendant
   def test_has_many_links_as_descendant
     a = Node.create!
     b = Node.create!
@@ -534,7 +534,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_parent
+  # Tests has_many links_as_parent
   def test_has_many_links_as_parent
     a = Node.create!
     b = Node.create!
@@ -545,7 +545,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_child
+  # Tests has_many links_as_child
   def test_has_many_links_as_child
     a = Node.create!
     b = Node.create!
@@ -556,7 +556,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many descendants
+  # Tests has_many descendants
   def test_has_many_descendants
     a = Node.create!
     b = Node.create!
@@ -565,15 +565,15 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests self_and_descendants
+  # Tests self_and_descendants
   def test_self_and_descendants
-    a = Node.create!(:name => 'a')
-    b = Node.create!(:name => 'b')
+    a = Node.create!(name: "a")
+    b = Node.create!(name: "b")
     a.descendants << b
-    assert_equal [a,b], a.self_and_descendants
+    assert_equal [a, b], a.self_and_descendants
   end
 
-  #Tests has_many ancestors
+  # Tests has_many ancestors
   def test_has_many_ancestors
     a = Node.create!
     b = Node.create!
@@ -582,15 +582,15 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests self_and_ancestors
+  # Tests self_and_ancestors
   def test_self_and_ancestors
     a = Node.create!
     b = Node.create!
     b.ancestors << a
-    assert_equal [b,a], b.self_and_ancestors
+    assert_equal [b, a], b.self_and_ancestors
   end
 
-  #Tests has_many children
+  # Tests has_many children
   def test_has_many_children
     a = Node.create!
     b = Node.create!
@@ -599,7 +599,7 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests has_many parents
+  # Tests has_many parents
   def test_has_many_parents
     a = Node.create!
     b = Node.create!
@@ -615,7 +615,7 @@ class DagTest < Minitest::Test
     assert b.valid?, b.errors.full_messages
   end
 
-  #Tests leaf? instance method
+  # Tests leaf? instance method
   def test_leaf_instance_method
     a = Node.create!
     assert a.leaf?
@@ -627,7 +627,7 @@ class DagTest < Minitest::Test
     assert b.leaf?
   end
 
-  #Tests root? instance method
+  # Tests root? instance method
   def test_root_instance_method
     a = Node.create!
     b = Node.create!
@@ -639,7 +639,7 @@ class DagTest < Minitest::Test
     assert a.root?
   end
 
-  #Tests has_many links_as_ancestor
+  # Tests has_many links_as_ancestor
   def test_has_many_links_as_ancestor_poly
     a = BetaNode.create!
     b = BetaNode.create!
@@ -650,7 +650,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_descendant
+  # Tests has_many links_as_descendant
   def test_has_many_links_as_descendant_poly
     a = BetaNode.create!
     b = BetaNode.create!
@@ -661,7 +661,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_parent
+  # Tests has_many links_as_parent
   def test_has_many_links_as_parent_poly
     a = BetaNode.create!
     b = BetaNode.create!
@@ -672,7 +672,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_child
+  # Tests has_many links_as_child
   def test_has_many_links_as_child_poly
     a = BetaNode.create!
     b = BetaNode.create!
@@ -683,7 +683,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests leaf? instance method
+  # Tests leaf? instance method
   def test_leaf_instance_method_poly
     a = BetaNode.create!
     assert a.leaf?
@@ -695,7 +695,7 @@ class DagTest < Minitest::Test
     assert b.leaf?
   end
 
-  #Tests root? instance method
+  # Tests root? instance method
   def test_root_instance_method_poly
     a = BetaNode.create!
     b = BetaNode.create!
@@ -707,7 +707,7 @@ class DagTest < Minitest::Test
     assert a.root?
   end
 
-  #Tests has_many links_as_ancestor_for_*
+  # Tests has_many links_as_ancestor_for_*
   def test_has_many_links_as_ancestor_for
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -718,7 +718,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_descendant_for_*
+  # Tests has_many links_as_descendant_for_*
   def test_has_many_links_as_descendant_for
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -729,7 +729,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_parent_for_*
+  # Tests has_many links_as_parent_for_*
   def test_has_many_links_as_parent_for
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -740,7 +740,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many links_as_child_for_*
+  # Tests has_many links_as_child_for_*
   def test_has_many_links_as_child_for
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -751,7 +751,7 @@ class DagTest < Minitest::Test
     assert_equal e.descendant, b
   end
 
-  #Tests has_many descendant_type
+  # Tests has_many descendant_type
   def test_has_many_descendant_dvds
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -760,7 +760,7 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests has_many ancestor_type
+  # Tests has_many ancestor_type
   def test_has_many_ancestor_dvds
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -769,7 +769,7 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests has_many child_dvds
+  # Tests has_many child_dvds
   def test_has_many_child_dvds
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -778,7 +778,7 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests has_many parents
+  # Tests has_many parents
   def test_has_many_parent_dvds
     a = AlphaNode.create!
     b = BetaNode.create!
@@ -787,7 +787,7 @@ class DagTest < Minitest::Test
     assert !e.nil?
   end
 
-  #Tests leaf_for_*? instance method
+  # Tests leaf_for_*? instance method
   def test_leaf_for_instance_method
     a = BetaNode.create!
     b = BetaNode.create!
@@ -798,7 +798,7 @@ class DagTest < Minitest::Test
     assert !b.leaf_for_beta_nodes?
   end
 
-  #Tests root_for_*? instance method
+  # Tests root_for_*? instance method
   def test_root_for_instance_method
     a = BetaNode.create!
     b = BetaNode.create!
@@ -809,32 +809,32 @@ class DagTest < Minitest::Test
     assert !b.root_for_beta_nodes?
   end
 
-  #Tests that longest_path_between works
+  # Tests that longest_path_between works
   def test_longest_path_between
     a = Node.create!
     b = Node.create!
     c = Node.create!
     d = Node.create!
-    e = Default.create_edge(a,b)
-    e = Default.create_edge(b,c)
-    e = Default.create_edge(a,c)
-    e = Default.create_edge(c,d)
-    path = Default.longest_path_between(a,d)
-    assert_equal [b,c,d], path
+    Default.create_edge(a, b)
+    Default.create_edge(b, c)
+    Default.create_edge(a, c)
+    Default.create_edge(c, d)
+    path = Default.longest_path_between(a, d)
+    assert_equal [b, c, d], path
   end
 
-  #Tests that shortest_path_between works
+  # Tests that shortest_path_between works
   def test_shortest_path_between
     a = Node.create!
     b = Node.create!
     c = Node.create!
     d = Node.create!
-    e = Default.create_edge(a,b)
-    e = Default.create_edge(b,c)
-    e = Default.create_edge(a,c)
-    e = Default.create_edge(c,d)
-    path = Default.shortest_path_between(a,d)
-    assert_equal [c,d], path
+    Default.create_edge(a, b)
+    Default.create_edge(b, c)
+    Default.create_edge(a, c)
+    Default.create_edge(c, d)
+    path = Default.shortest_path_between(a, d)
+    assert_equal [c, d], path
   end
 
   # Tests that perpetuate upon destroy works
@@ -842,9 +842,8 @@ class DagTest < Minitest::Test
     a = Node.create!
     b = Node.create!
     c = Node.create!
-    e = Default.create_edge!(a,b)
-    f = Default.create_edge!(b,c)
+    e = Default.create_edge!(a, b)
+    Default.create_edge!(b, c)
     e.destroy
   end
-
 end

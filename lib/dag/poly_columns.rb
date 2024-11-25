@@ -1,5 +1,5 @@
 module Dag
-  #Methods that show the columns for polymorphic DAGs
+  # Methods that show the columns for polymorphic DAGs
   module PolyColumns
     def ancestor_type_column_name
       acts_as_dag_options[:ancestor_type_column]

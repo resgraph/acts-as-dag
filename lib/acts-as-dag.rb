@@ -13,6 +13,4 @@ require "dag/validators"
 
 $LOAD_PATH.shift
 
-if defined?(ActiveRecord::Base)
-  ActiveRecord::Base.extend Dag
-end
+ActiveRecord::Base.extend Dag if defined?(ActiveRecord::Base)
